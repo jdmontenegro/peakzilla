@@ -1,19 +1,10 @@
 #! /usr/bin/env python
 
-import os
-import sys
-import math
-import csv
-import collections
-import docopt
-
-import peakzilla_qnorm_mapq_patched as pz
-
-
-__doc__ = '''
+"""
 Usage: join_peaks.py [options] PEAKS CHIP INPUT [ (PEAKS CHIP INPUT) ... ]
 
 This script finds peaks in common between multiple ChIP experiments determined
+
 by peakzilla. For each ChIP experiment, input a PEAKS file as otuput by
 peakzilla, and 2 BED files (CHIP and INPUT) as input to peakzilla.
 
@@ -28,11 +19,25 @@ All 'PZ' columns are the original output from peakzilla and the remaining
 columns are re-calculated in this script (also output regardless of the presence
 of a peak).
 
-Options:
-	--max-distance=DIST	 maximum summit distance to join peaks [default: 10]
-'''
+Arguments:
+    PEAKS   multiple files with peaks called
+    CHIP    multiple files with the raw chiseq reads
+    INPUT   multiple files with the raw control reads
 
-args = docopt.docopt(__doc__)
+Options:
+    --max-distance=DIST maximum summit distance to join peaks [default: 10]
+"""
+
+import os
+import sys
+import math
+import csv
+import collections
+from docopt import docopt
+
+import peakzilla_qnorm_mapq_patched2 as pz
+
+args = docopt(__doc__)
 
 #np.set_printoptions(precision=1,suppress=True)
 
@@ -112,7 +117,7 @@ class JoinedPeak(Peak):
 		for set_name,peak in self.peaks.items():
 			if hasattr(peak,'score'):
 				s += peak.name + '\t' + '\t'.join('%.2f' % x for x in
-							   [peak.score,peak.chip,peak.control,peak.fold_enrichment,peak.fdr]) + '\t'
+								[peak.score,peak.chip,peak.control,peak.fold_enrichment,peak.fdr]) + '\t'
 				called_peaks += 1
 				#s += '%.1f\t%.1f\t%.1f\t%.1f\t' % (
 					#peak.score,peak.chip,peak.control,peak.fold_enrichment)
@@ -136,14 +141,14 @@ class JoinedPeak(Peak):
 		try:
 			if len(peak_signals):
 				s = '\t'.join([self.chrom,str(self.center-self.WIDTH/2),str(self.center+self.WIDTH/2),
-							   self.chrom+'_'+str(self.center),str(called_peaks)]) +\
+								self.chrom+'_'+str(self.center),str(called_peaks)]) +\
 					'\t%.2f\t%.2f\t%.2f\t' % (
 						max(peak_signals)/(min(peak_signals) + sys.float_info.epsilon),
 						std_err(peak_signals), std_err(peak_enrichs),
 					) + s
 			else:
 				s = '\t'.join([self.chrom,str(self.center),
-							   self.chrom+'_'+str(self.center),str(called_peaks)]) +\
+								self.chrom+'_'+str(self.center),str(called_peaks)]) +\
 					'\tNA\tNA\tNA\t' + s
 
 		except:
@@ -217,7 +222,8 @@ class PeakScorer(pz.PeakContainer):
 				self.peak_count += 1
 		for chrom,peaks in self.peaks.items():
 			self.peaks[chrom] = sorted(self.peaks[chrom], 
-									   lambda a,b: cmp(a.position,b.position))
+				#lambda a,b: cmp(a.position,b.position))
+				key=lambda peak: peak.position)
 			self.fill_scores(chrom,'ip','score')
 			self.fill_scores(chrom,'control','background')
 			self.determine_fold_enrichment(chrom)
@@ -245,11 +251,11 @@ maxdist = int(args['--max-distance'])
 peaksets = {}
 filesets = {}
 for peakfile,chipfile,controlfile in zip(args['PEAKS'],args['CHIP'],args['INPUT']):
-	set_name = os.path.basename(peakfile).split('.')[0]
+	set_name = os.path.basename(peakfile).split('.')[0]  ##  this fails when using relative paths in the file names
 	peaksets[set_name] = collections.defaultdict(list)
 	filesets[set_name] = FileSet(peakfile,chipfile,controlfile)
 	r = csv.reader(open(peakfile),delimiter='\t')
-	r.next() # header
+	next(r) # header
 	'''
 	#XXX: limit peaks
 	maxpeaks = 20
@@ -262,11 +268,11 @@ for peakfile,chipfile,controlfile in zip(args['PEAKS'],args['CHIP'],args['INPUT'
 			peaksets[set_name][row[0]].append(PZPeak(set_name,*row))
 			'''
 	for row in r:
-		peaksets[set_name][row[0]].append(PZPeak(set_name,*row))
-
-	JoinedPeak.WIDTH += peaksets[set_name].itervalues().next()[0].width()
-
-JoinedPeak.WIDTH /= len(peaksets)
+		#peaksets[set_name][row[0]].append(PZPeak(set_name,*row))
+		peaksets[set_name][row[0]].append(PZPeak(set_name,*row[0:10], row[11]))
+		#JoinedPeak.WIDTH += peaksets[set_name].itervalues().next()[0].width()
+		JoinedPeak.WIDTH += next(iter(peaksets[set_name].values()))[0].width()
+		JoinedPeak.WIDTH /= len(peaksets)
 
 # find closest peak to each peak in the new set
 #  make new peaks when there's no qualifying one

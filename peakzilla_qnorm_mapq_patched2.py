@@ -283,8 +283,10 @@ class TagContainer:
 			self.tags[chrom]['-'] = array('i',[])
 			if self.store_mapq:
 				self.mapq[chrom] = {}
-				self.mapq[chrom]['+'] = array('b',[])
-				self.mapq[chrom]['-'] = array('b',[])
+				#self.mapq[chrom]['+'] = array('b',[])
+				self.mapq[chrom]['+'] = array('B',[])
+				#self.mapq[chrom]['-'] = array('b',[])
+				self.mapq[chrom]['-'] = array('B',[])
 		self.tags[chrom][strand].append(fiveprime)
 		if self.store_mapq:
 			self.mapq[chrom][strand].append(mapq)
@@ -338,10 +340,14 @@ class TagContainer:
 		# sort all tags while preserving the array data structure
 		if self.store_mapq:
 			for chrom in self.mapq.keys():
-				self.mapq[chrom]['+'] = array('b', [x for (y,x) in sorted(
-					itertools.izip(self.tags[chrom]['+'], self.mapq[chrom]['+']))])
-				self.mapq[chrom]['-'] = array('b', [x for (y,x) in sorted(
-					itertools.izip(self.tags[chrom]['-'], self.mapq[chrom]['-']))])
+				#self.mapq[chrom]['+'] = array('b', [x for (y,x) in sorted(
+				self.mapq[chrom]['+'] = array('B', [x for (y,x) in sorted(
+					#itertools.izip(self.tags[chrom]['+'], self.mapq[chrom]['+']))])
+					zip(self.tags[chrom]['+'], self.mapq[chrom]['+']))])
+				#self.mapq[chrom]['-'] = array('b', [x for (y,x) in sorted(
+				self.mapq[chrom]['-'] = array('B', [x for (y,x) in sorted(
+					#itertools.izip(self.tags[chrom]['-'], self.mapq[chrom]['-']))])
+					zip(self.tags[chrom]['-'], self.mapq[chrom]['-']))])
 		for chrom in self.tags.keys():
 			# as sorted returns conversion back to array is required
 			self.tags[chrom]['+'] = array('i', sorted(self.tags[chrom]['+']))
