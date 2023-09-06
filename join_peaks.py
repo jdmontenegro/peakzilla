@@ -4,7 +4,6 @@
 Usage: join_peaks.py [options] PEAKS CHIP INPUT [ (PEAKS CHIP INPUT) ... ]
 
 This script finds peaks in common between multiple ChIP experiments determined
-
 by peakzilla. For each ChIP experiment, input a PEAKS file as otuput by
 peakzilla, and 2 BED files (CHIP and INPUT) as input to peakzilla.
 
@@ -56,8 +55,7 @@ class Peak(object):
 		else:
 			return -1
 	def compute_fold_enrichment(self):
-		self.computed_fold_enrichment = float(self.computed_chip
-											 )/self.computed_control
+		self.computed_fold_enrichment = float(self.computed_chip) / self.computed_control
 
 class SlavePeak(Peak):
 	def __init__(self,set_name,center):
